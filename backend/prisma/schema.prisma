@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Professor {
+  id          String         @id @default(uuid())
+  name        String
+  email       String         @unique
+  password    String
+  role        String         @default("professor") // professor or admin
+  department  String?
+  designation String?
+  forms       FeedbackForm[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model FeedbackForm {
+  id           String         @id @default(uuid())
+  professorId  String
+  professor    Professor      @relation(fields: [professorId], references: [id])
+  title        String
+  courseName   String
+  subjectCode  String
+  semester     String
+  academicYear String
+  deadline     DateTime
+  isActive     Boolean        @default(true)
+  isAnonymous  Boolean        @default(true)
+  pinProtected Boolean        @default(false)
+  pin          String?
+  columns      FormColumn[]
+  rows         FormRow[]
+  submissions  Submission[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model FormColumn {
+  id          String         @id @default(uuid())
+  formId      String
+  form        FeedbackForm   @relation(fields: [formId], references: [id], onDelete: Cascade)
+  subjectName String
+  order       Int
+  answers     Answer[]
+}
+
+model FormRow {
+  id           String         @id @default(uuid())
+  formId       String
+  form         FeedbackForm   @relation(fields: [formId], references: [id], onDelete: Cascade)
+  label        String
+  isHeader     Boolean        @default(false)
+  sectionGroup String?
+  order        Int
+  answers      Answer[]
+}
+
+model Submission {
+  id             String         @id @default(uuid())
+  formId         String
+  form           FeedbackForm   @relation(fields: [formId], references: [id], onDelete: Cascade)
+  studentName    String?
+  rollNumber     String
+  studentEmail   String?
+  overallComment String?
+  answers        Answer[]
+  submittedAt    DateTime       @default(now())
+
+  @@unique([formId, rollNumber])
+}
+
+model Answer {
+  id           String       @id @default(uuid())
+  submissionId String
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  rowId        String
+  row          FormRow      @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  columnId     String
+  column       FormColumn   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  rating       Int          @default(5)
+}
