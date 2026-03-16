@@ -216,23 +216,55 @@ export const exportExcel = async (req, res) => {
             col.width = i === 0 ? 45 : 20;
         });
 
-        // Individual responses sheet
+        // Individual responses sheet - each row = one student
         const responsesSheet = workbook.addWorksheet('Individual Responses');
-        const respHeader = ['Student Name', 'Student ID', 'Submitted At', 'Overall Comment'];
+
+        // Build header: Student Name | Student ID | Submitted At | Comment | [Criteria - Subject]...
+        const criteriaRows = form.rows.filter(r => !r.isHeader);
+        const dynamicHeaders = [];
+        criteriaRows.forEach(row => {
+            form.columns.forEach(col => {
+                dynamicHeaders.push(`${row.label.substring(0, 20)} (${col.subjectName.substring(0, 10)})`);
+            });
+        });
+
+        const respHeader = ['Student Name', 'Student ID', 'Submitted At', 'Overall Comment', ...dynamicHeaders];
         responsesSheet.addRow(respHeader);
-        responsesSheet.getRow(1).font = { bold: true };
+        const headerRow1 = responsesSheet.getRow(1);
+        headerRow1.font = { bold: true };
+        headerRow1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAD3' } };
 
         for (const sub of submissions) {
+            // Build a lookup map for this student's answers: rowId-colId => rating
+            const answerMap = {};
+            sub.answers.forEach(ans => {
+                answerMap[`${ans.rowId}-${ans.columnId}`] = ans.rating;
+            });
+
+            const scores = [];
+            criteriaRows.forEach(row => {
+                form.columns.forEach(col => {
+                    const rating = answerMap[`${row.id}-${col.id}`];
+                    scores.push(rating !== undefined ? rating : '');
+                });
+            });
+
             responsesSheet.addRow([
                 sub.studentName || 'Anonymous',
                 sub.rollNumber,
                 sub.submittedAt.toISOString().split('T')[0],
                 sub.overallComment || '',
+                ...scores,
             ]);
         }
 
+        // Set column widths
         responsesSheet.columns.forEach((col, i) => {
-            col.width = [25, 15, 15, 40][i] || 15;
+            if (i === 0) col.width = 25;        // Student Name
+            else if (i === 1) col.width = 15;   // Student ID
+            else if (i === 2) col.width = 14;   // Date
+            else if (i === 3) col.width = 35;   // Comment
+            else col.width = 18;                // Score columns
         });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
