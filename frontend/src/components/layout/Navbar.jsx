@@ -1,5 +1,5 @@
 import { useAuthStore } from '../../store/slices/authSlice';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
@@ -14,8 +14,9 @@ export default function Navbar() {
     return (
         <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16 flex items-center justify-between px-6 shadow-sm z-10 sticky top-0">
             <div className="flex items-center gap-4">
+                <MessageCircle className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                 <h1 className="text-xl font-bold text-gray-800 dark:text-white hidden sm:block">
-                    Teacher Feedback Collection System
+                    Teacher Feedback System
                 </h1>
             </div>
 

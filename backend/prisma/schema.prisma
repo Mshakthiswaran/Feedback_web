@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -21,24 +21,28 @@ model Professor {
 }
 
 model FeedbackForm {
-  id           String         @id @default(uuid())
-  professorId  String
-  professor    Professor      @relation(fields: [professorId], references: [id])
-  title        String
-  courseName   String
-  subjectCode  String
-  semester     String
-  academicYear String
-  deadline     DateTime
-  isActive     Boolean        @default(true)
-  isAnonymous  Boolean        @default(true)
-  pinProtected Boolean        @default(false)
-  pin          String?
-  columns      FormColumn[]
-  rows         FormRow[]
-  submissions  Submission[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id                  String         @id @default(uuid())
+  professorId         String
+  professor           Professor      @relation(fields: [professorId], references: [id])
+  title               String
+  courseName          String
+  subjectCode         String
+  semester            String
+  academicYear        String
+  deadline            DateTime
+  isActive            Boolean        @default(true)
+  isAnonymous         Boolean        @default(true)
+  pinProtected        Boolean        @default(false)
+  pin                 String?
+  confirmationMessage String?
+  maxResponses        Int?
+  themeColor          String?
+  columns             FormColumn[]
+  rows                FormRow[]
+  questions           Question[]
+  submissions         Submission[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 }
 
 model FormColumn {
@@ -61,16 +65,31 @@ model FormRow {
   answers      Answer[]
 }
 
+model Question {
+  id        String             @id @default(uuid())
+  formId    String
+  form      FeedbackForm       @relation(fields: [formId], references: [id], onDelete: Cascade)
+  type      String             // short_answer | paragraph | multiple_choice | checkboxes | dropdown | linear_scale | star_rating | date | section_break
+  label     String
+  options   String             @default("[]")
+  required  Boolean            @default(false)
+  scaleMin  Int?
+  scaleMax  Int?
+  order     Int
+  responses QuestionResponse[]
+}
+
 model Submission {
-  id             String         @id @default(uuid())
-  formId         String
-  form           FeedbackForm   @relation(fields: [formId], references: [id], onDelete: Cascade)
-  studentName    String?
-  rollNumber     String
-  studentEmail   String?
-  overallComment String?
-  answers        Answer[]
-  submittedAt    DateTime       @default(now())
+  id                String             @id @default(uuid())
+  formId            String
+  form              FeedbackForm       @relation(fields: [formId], references: [id], onDelete: Cascade)
+  studentName       String?
+  rollNumber        String
+  studentEmail      String?
+  overallComment    String?
+  answers           Answer[]
+  questionResponses QuestionResponse[]
+  submittedAt       DateTime           @default(now())
 
   @@unique([formId, rollNumber])
 }
@@ -84,4 +103,14 @@ model Answer {
   columnId     String
   column       FormColumn   @relation(fields: [columnId], references: [id], onDelete: Cascade)
   rating       Int          @default(5)
+}
+
+model QuestionResponse {
+  id            String     @id @default(uuid())
+  submissionId  String
+  submission    Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  textValue     String?
+  selectedOpts  String     @default("[]")
 }
